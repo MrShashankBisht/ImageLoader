@@ -84,6 +84,9 @@ dependencies {
 
     // retrofit
     implementation (libs.retrofit)
+    // Retrofit with Gson converter
+    implementation (libs.converter.gson)
+    implementation(libs.okhttp)
 
 }
 
