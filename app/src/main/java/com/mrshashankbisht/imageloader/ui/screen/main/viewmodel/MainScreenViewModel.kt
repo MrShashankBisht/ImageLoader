@@ -1,11 +1,14 @@
 package com.mrshashankbisht.imageloader.ui.screen.main.viewmodel
 
 import android.graphics.Bitmap
+import android.graphics.pdf.PdfDocument.Page
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mrshashankbisht.imageloader.domain.repositories.main.MainRepository
 import com.mrshashankbisht.imageloader.ui.screen.main.event.MainScreenEvents
 import com.mrshashankbisht.imageloader.ui.screen.main.state.MainScreenState
+import com.mrshashankbisht.imageloader.utils.ImageCacheManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -24,24 +27,28 @@ class MainScreenViewModel @Inject constructor(
 ) : ViewModel(), MainScreenEvents {
     private val _state = MutableStateFlow(MainScreenState())
     val state = _state.asStateFlow()
+    val imageCacheManager = ImageCacheManager()
 
 
-    override fun getPhotoImage() {
+    override fun getPhotoImage(page: Int) {
+        _state.value.copy(loadingData = true)
         viewModelScope.launch {
             CoroutineScope(Dispatchers.IO).launch {
                 // checking the internet if available then load from serve else load from db cache
                 if(state.value.internetAvailable) {
-                    _state.value.copy(loadingData = true)
-                    val photos = mainRepository.getPhotos(1)
+
+                    var photos = state.value.mutableListOfPhotoImage
+                    Log.d("calling API", "getPhotoImage: ${page}")
+                    photos.addAll(mainRepository.getPhotos(page))
+                    Log.d("calling API", "getPhotoImage: photos size ${photos.count()}")
 
                     _state.update {
-                        it.copy(mutableListOfPhotoImage = photos.toMutableList())
+                        it.copy(listPageCount = page, loadingData = false, mutableListOfPhotoImage = photos, itemCount = photos.count())
                     }
-                    _state.value.copy(loadingData = false)
                 } else {
                     // from local db
                     var data = _state.value.mutableListOfPhotoImage
-                    data.addAll(mainRepository.getPhotos(1))
+                    data.addAll(mainRepository.getPhotos(page))
                     // from server
                     _state.update {
                         it.copy(mutableListOfPhotoImage = data)
@@ -64,5 +71,13 @@ class MainScreenViewModel @Inject constructor(
         CoroutineScope(Dispatchers.IO).launch {
             mainRepository.saveImageToDb(id, loaclPath, failure, success)
         }
+    }
+
+    override fun getCacheBitmap(id: String): Bitmap? {
+        return imageCacheManager.getImage(id)
+    }
+
+    override fun saveInCache(id: String, bitmap: Bitmap) {
+        imageCacheManager.saveImageToCache(id, bitmap)
     }
 }

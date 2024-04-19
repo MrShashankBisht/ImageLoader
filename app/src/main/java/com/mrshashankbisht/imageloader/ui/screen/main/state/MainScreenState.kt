@@ -9,7 +9,9 @@ data class MainScreenState(
     var internetAvailable: Boolean = true,
     var internetNotAvailableMessage: String = "No internet please connect to internet !",
     var loadingData:Boolean = false,
-    var anyError: Boolean = true,
-    var errorMessage: String = "there is some problem while loading :( ",
-    var mutableListOfPhotoImage: MutableList<PhotoImage> = mutableListOf()
+    var anyError: Boolean = false,
+    var errorMessage: String = "",
+    var mutableListOfPhotoImage: MutableList<PhotoImage> = mutableListOf(),
+    var itemCount: Int = 0,
+    var listPageCount: Int = 1,
 )

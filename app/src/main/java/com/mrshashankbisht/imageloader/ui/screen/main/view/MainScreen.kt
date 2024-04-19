@@ -4,14 +4,15 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
+import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -26,6 +27,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -35,6 +38,8 @@ import com.mrshashankbisht.imageloader.ui.screen.main.state.MainScreenState
 import com.mrshashankbisht.imageloader.ui.theme.bgError
 import com.mrshashankbisht.imageloader.ui.theme.bgWarningColor
 import com.mrshashankbisht.imageloader.ui.theme.circularProgressColor
+import com.mrshashankbisht.imageloader.utils.toDp
+import com.mrshashankbisht.imageloader.utils.toPx
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.StateFlow
@@ -51,7 +56,7 @@ import java.net.URL
 fun MainScreen(stateFlow: StateFlow<MainScreenState>, mainScreenEvents: MainScreenEvents) {
 
     val state by stateFlow.collectAsState()
-    mainScreenEvents.getPhotoImage()
+    mainScreenEvents.getPhotoImage(1)
 
     Scaffold { paddingValues ->
         Column(
@@ -79,12 +84,26 @@ fun MainScreen(stateFlow: StateFlow<MainScreenState>, mainScreenEvents: MainScre
                 ShowHideUIWithDelay(state.errorMessage)
             }
             // main body.
-            LazyColumn {
-                items(state.mutableListOfPhotoImage) {
-                    if(it.url != null) {
-                        ImageListScreen(imageUrl = it.url, { error ->
-                            stateFlow.value.copy(anyError = true, errorMessage = error)
-                        }) {
+            LazyVerticalStaggeredGrid(
+                columns = StaggeredGridCells.Fixed(2),
+                verticalItemSpacing = 1.dp,
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                items(state.itemCount) { i ->
+                    if (i == (state.itemCount - 2) && !state.loadingData) {
+                        mainScreenEvents.getPhotoImage(state.listPageCount + 1)
+                    }
+                    val photo = state.mutableListOfPhotoImage[i]
+                    if (photo.url != null && photo.id != null) {
+                        ImageListScreen(
+                            mainScreenEvents,
+                            photo.id!!,
+                            imageUrl = photo.url,
+                            { error ->
+                                if (!state.anyError) {
+                                    stateFlow.value.copy(anyError = true, errorMessage = error)
+                                }
+                            }) {
                             // save image to db for cache.
 
                         }
@@ -94,11 +113,19 @@ fun MainScreen(stateFlow: StateFlow<MainScreenState>, mainScreenEvents: MainScre
 
             //loading data loader
             if (state.loadingData) {
-                CircularProgressIndicator(
-                    modifier = Modifier.width(30.dp),
-                    color = circularProgressColor,
-                    trackColor = Color.LightGray,
-                )
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.CenterHorizontally)
+                        .height(Dp(50f))
+                ) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.width(30.dp),
+                        color = circularProgressColor,
+                        trackColor = Color.LightGray,
+                    )
+                }
+
             }
 
         }
@@ -137,48 +164,80 @@ fun ShowHideUIWithDelay(errorMessage: String) {
 }
 
 @Composable
-fun ImageListScreen(imageUrl: String, onError: ((error: String) -> Unit), loadedSuccess: ((bitmap: Bitmap) -> Unit)) {
+fun ImageListScreen(
+    mainScreenEvents: MainScreenEvents,
+    id: String,
+    imageUrl: String,
+    onError: ((error: String) -> Unit),
+    loadedSuccess: ((bitmap: Bitmap) -> Unit)
+) {
 
-    // Step 3: Placeholder
+    val configuration = LocalConfiguration.current
+    val screenHeight = configuration.screenHeightDp.dp
+    val screenWidth = configuration.screenWidthDp.toFloat().toPx()
+
     var bitmap: Bitmap? by remember { mutableStateOf(null) }
+    var errorMessage: String? by remember {
+        mutableStateOf(null)
+    }
 
-    // Step 4: Load Images
+    bitmap = mainScreenEvents.getCacheBitmap(id)
+
     if (bitmap == null) {
         LaunchedEffect(imageUrl) {
-            try {
-                withContext(Dispatchers.IO) {
+            withContext(Dispatchers.IO) {
+                try {
                     val inputStream = URL(imageUrl).openStream()
                     bitmap = BitmapFactory.decodeStream(inputStream)
                     inputStream.close()
+                    if (bitmap != null) {
+                        mainScreenEvents.saveInCache(id, bitmap!!)
+                    } else {
+                        errorMessage = "Loading image issue"
+                    }
+                } catch (e: IOException) {
+                    errorMessage = "Loading image issue"
+                    onError("${e.message}")
                 }
-            } catch (e: IOException) {
-                // Handle error
             }
+
         }
     }
-
-    // Display image once loaded
     if (bitmap != null) {
+        val ration = bitmap!!.height.toFloat() / bitmap!!.width.toFloat()
+        val ImageFrameHeight = ration*(screenWidth/2)
         Image(
             bitmap!!.asImageBitmap(),
             contentDescription = null,
+            contentScale = ContentScale.FillWidth,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .height(Dp(ImageFrameHeight.toDp()))
         )
     } else {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(200.dp)
+                .height(200.dp),
+            contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator(
-                modifier = Modifier
-                    .width(30.dp)
-                    .align(Alignment.Center),
-                color = circularProgressColor,
-                trackColor = Color.LightGray,
-            )
+            if (errorMessage != null) {
+                Text(
+                    color = Color.Red,
+                    fontSize = 14f.sp,
+                    textAlign = TextAlign.Center,
+                    text = errorMessage!!.toString()
+                )
+            } else {
+                CircularProgressIndicator(
+                    modifier = Modifier
+                        .width(30.dp)
+                        .align(Alignment.Center),
+                    color = circularProgressColor,
+                    trackColor = Color.LightGray,
+                )
+            }
+
         }
     }
 
