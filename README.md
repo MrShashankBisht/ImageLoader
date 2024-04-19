@@ -1,30 +1,35 @@
-# Image Loader Application.
+# Image Loader Application
 
-----------------------------------------------
+---
 
-## In this application I have use following things 
-### * Use MVVM architecture
-### * using clean code layer (UI, domain , and data layer)
-### * Hilt dagger dependency 
-### * Retrofit for network calling
-### * **LRU Cache for caching the images**
-----------------------------
+## Introduction
 
-## future in version 2 what I will add in this repository 
+This application follows the MVVM architecture and emphasizes clean code principles across its layers, including UI, domain, and data layers. It leverages Hilt Dagger for dependency injection and Retrofit for efficient network communication. Additionally, LRU Cache is implemented for effective image caching.
 
-### * Handling network switch and lost in more accurate manner using observer and broadcast channel
-### * will use ROOM data base for offline use
-### * adding animation on image for different operations 
-### * adding following operations
-###     a. delete
-###     b. like 
-###     c. save 
-###     d. share
+---
 
---------------------------------------------------------
+## Future Plans for Version 2
 
-## video of v_1
-![Main Screen] (https://github.com/MrShashankBisht/ImageLoader/blob/master/raw/_ImageLoader.webm)
+In the upcoming version 2 of this repository, the following enhancements are planned:
 
-## Image of v_1
-![Main Screen] (https://github.com/MrShashankBisht/ImageLoader/blob/master/raw/ImageNotLoaded.png)
+* Enhance network connectivity handling with improved accuracy using observers and broadcast channels.
+* Implement ROOM database for seamless offline functionality.
+* Introduce animations on images to enhance user experience.
+* Add essential operations such as delete, like, save, and share functionalities for images.
+* Improving the directory structure in the version 2 application
+
+---
+
+## Directory Structure
+
+![Directory Structure](https://github.com/MrShashankBisht/ImageLoader/blob/master/raw/directoryStructure.PNG)
+
+---
+
+## Demo Video and Screenshots
+
+| Main Screen Video                                             | Error loading Image                                      |
+| ------------------------------------------------------ | ------------------------------------------------------ |
+| <img src="https://github.com/MrShashankBisht/ImageLoader/blob/master/raw/_ImageLoader.gif" alt="Alt Main Screen" width="400" height="888"> | <img src="https://github.com/MrShashankBisht/ImageLoader/blob/master/raw/ImageNotLoaded.png" alt="Alt Main Screen" width="400" height="888"> |
+
+---
